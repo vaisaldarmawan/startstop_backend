@@ -1,0 +1,51 @@
+const mqtt = require('mqtt');
+const { exec } = require('child_process');
+
+const mqttOptions = {
+    host: "192.168.1.60",
+    port: 1883,
+    username: "root",
+    password: "1111"
+};
+
+const topic = "192.168.1.60/log";
+
+// Connect to MQTT broker
+const client = mqtt.connect(`mqtt://${mqttOptions.host}:${mqttOptions.port}`, {
+    username: mqttOptions.username,
+    password: mqttOptions.password
+});
+
+client.on('connect', () => {
+    console.log(`Connected to MQTT broker at ${mqttOptions.host}:${mqttOptions.port}`);
+    client.subscribe(topic, (err) => {
+        if (err) {
+            console.error("Subscription error:", err);
+        } else {
+            console.log(`Subscribed to topic: ${topic}`);
+        }
+    });
+    
+    // Function to fetch last 10 lines from screen session
+    setInterval(() => {
+        exec("screen -r startstop -X hardcopy -h /tmp/screenlog && tail -n 10 /tmp/screenlog > /tmp/screenlog.tmp && mv /tmp/screenlog.tmp /tmp/screenlog && cat /tmp/screenlog", (error, stdout, stderr) => {
+            if (error) {
+                console.error(`Execution error: ${error.message}`);
+                return;
+            }
+            if (stderr) {
+                console.error(`stderr: ${stderr}`);
+            }
+            
+            const screenData = stdout.trim();
+            if (screenData) {
+                console.log(`Sending data to MQTT: ${screenData}`);
+                client.publish(topic, screenData, { qos: 1, retain: false });
+            }
+        });
+    }, 5000); // Mengirimkan data setiap 5 detik
+});
+
+client.on('error', (err) => {
+    console.error("MQTT Error:", err);
+});
