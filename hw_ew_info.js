@@ -1,5 +1,5 @@
 require('dotenv').config();
-const { exec } = require('child_process');
+const { execSync, exec } = require('child_process');
 const mqtt = require('mqtt');
 
 // Load environment variables
@@ -8,6 +8,9 @@ const MQTT_PORT = process.env.MQTT_PORT;
 const MQTT_USERNAME = process.env.MQTT_USERNAME;
 const MQTT_PASSWORD = process.env.MQTT_PASSWORD;
 const INFO_INTERVAL = process.env.INFO_INTERVAL;
+
+// Get local machine IP
+const MY_IP = execSync("hostname -I | awk '{print $1}'").toString().trim();
 
 // MQTT Configuration
 const mqttOptions = {
@@ -25,8 +28,11 @@ try {
   process.exit(1);
 }
 
-const hwTopic = `${MQTT_HOST}/status`;
-const ewTopic = `${MQTT_HOST}/ew_status`;
+const hwTopic = `${MY_IP}/status`;
+const ewTopic = `${MY_IP}/ew_status`;
+
+console.log("HW Topic:", hwTopic);
+console.log("EW Topic:", ewTopic);
 
 // System commands for fetching local machine data
 const commands = {
