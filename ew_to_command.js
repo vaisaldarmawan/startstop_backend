@@ -1,14 +1,16 @@
 require('dotenv').config();
 const mqtt = require('mqtt');
-const { exec } = require('child_process');
+const { execSync, exec } = require('child_process');
 
 // Load environment variables
 const MQTT_HOST = process.env.MQTT_HOST;
 const MQTT_PORT = process.env.MQTT_PORT;
 const MQTT_USERNAME = process.env.MQTT_USERNAME;
 const MQTT_PASSWORD = process.env.MQTT_PASSWORD;
-const MQTT_TOPIC = `${MQTT_HOST}/cli`;
 
+const MY_IP = execSync("hostname -I | awk '{print $1}'").toString().trim();
+const MQTT_TOPIC = `${MY_IP}/cli`;
+console.log(MQTT_TOPIC);
 const mqttOptions = {
     host: MQTT_HOST,
     port: MQTT_PORT,
