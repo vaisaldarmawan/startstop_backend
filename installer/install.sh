@@ -164,6 +164,7 @@ loading $! " >> Menghidupkan Service Crontab" "crontab_error.log"
 
 echo -ne " >> Mengatur PM2 sebagai startup systemd [ ]"
 pm2 startup systemd > /dev/null 2> pm2_startup_error.log &
+env PATH=$PATH:/usr/bin pm2 startup systemd -u root --hp /root
 loading $! " >> Mengatur PM2 sebagai startup systemd" "pm2_startup_error.log"
 
 echo -ne " >> Menyimpan konfigurasi PM2 [ ]"
