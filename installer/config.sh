@@ -109,7 +109,9 @@ for i in {1..7}; do
 done
 echo -e "${NC}"
 
-pm2 restart hw_ew_info.js 
-pm2 restart ew_to_command.js 
+pm2 restart hw_ew_info.js  --update-env
+pm2 restart ew_to_command.js  --update-env
+pm2 startup
+pm2 save
 
 echo -e "${GREEN}Selesai.${NC}"
