@@ -42,7 +42,10 @@ echo -e "${GREEN}Konfigurasi MQTT :${NC}"
 
 while true; do
     read -p "MQTT HOST (IP xx.xx.xx.xx atau URL) : " MQTT_HOST
-    if [[ "$MQTT_HOST" =~ ^([0-9]{1,3}\.){3}[0-9]{1,3}$ || "$MQTT_HOST" =~ ^[a-zA-Z0-9.-]+$ ]]; then
+    if [[ -z "$MQTT_HOST" ]]; then
+        MQTT_HOST="localhost"
+        break
+    elif [[ "$MQTT_HOST" =~ ^([0-9]{1,3}\.){3}[0-9]{1,3}$ || "$MQTT_HOST" =~ ^[a-zA-Z0-9.-]+$ ]]; then
         break
     else
         echo -e "${YELLOW}WARN: Masukkan IP atau URL yang valid.${NC}"
@@ -50,8 +53,11 @@ while true; do
 done
 
 while true; do
-    read -p "MQTT PORT : " MQTT_PORT
-    if [[ "$MQTT_PORT" =~ ^[0-9]+$ && "$MQTT_PORT" -gt 0 && "$MQTT_PORT" -le 65535 ]]; then
+    read -p "MQTT PORT (default: 1883) : " MQTT_PORT
+    if [[ -z "$MQTT_PORT" ]]; then
+        MQTT_PORT="1883"
+        break
+    elif [[ "$MQTT_PORT" =~ ^[0-9]+$ && "$MQTT_PORT" -gt 0 && "$MQTT_PORT" -le 65535 ]]; then
         break
     else
         echo -e "${YELLOW}WARN: Masukkan angka antara 1 - 65535.${NC}"
@@ -73,20 +79,26 @@ echo -e "\n"
 
 echo -e "${GREEN}Konfigurasi Interval (milisecond) :${NC}"
 while true; do
-    read -p "Interval Hw Monitor (rekomendasi 5000): " INFO_INTERVAL
-    if [[ "$INFO_INTERVAL" =~ ^[0-9]+$ ]]; then
+    read -p "Interval Hw Monitor (default: 5000) : " INFO_INTERVAL
+    if [[ -z "$INFO_INTERVAL" ]]; then
+        INFO_INTERVAL="5000"
+        break
+    elif [[ "$INFO_INTERVAL" =~ ^[0-9]+$ && "$INFO_INTERVAL" -ge 5000 ]]; then
         break
     else
-        echo -e "${YELLOW}WARN: Anda hanya bisa memasukan angka.${NC}"
+        echo -e "${YELLOW}WARN: Anda hanya bisa memasukkan angka minimal 5000.${NC}"
     fi
 done
 
 while true; do
-    read -p "Interval Ew Monitor (rekomendasi 5000): " LOG_INTERVAL
-    if [[ "$LOG_INTERVAL" =~ ^[0-9]+$ ]]; then
+    read -p "Interval Ew Monitor (default: 5000) : " LOG_INTERVAL
+    if [[ -z "$LOG_INTERVAL" ]]; then
+        LOG_INTERVAL="5000"
+        break
+    elif [[ "$LOG_INTERVAL" =~ ^[0-9]+$ && "$LOG_INTERVAL" -ge 5000 ]]; then
         break
     else
-        echo -e "${YELLOW}WARN: Anda hanya bisa memasukan angka.${NC}"
+        echo -e "${YELLOW}WARN: Anda hanya bisa memasukkan angka minimal 5000.${NC}"
     fi
 done
 
@@ -109,9 +121,7 @@ for i in {1..7}; do
 done
 echo -e "${NC}"
 
-pm2 restart hw_ew_info.js  --update-env
-pm2 restart ew_to_command.js  --update-env
-pm2 startup > /dev/null 2>&1
-pm2 save > /dev/null 2>&1
+pm2 restart hw_ew_info.js 
+pm2 restart ew_to_command.js 
 
 echo -e "${GREEN}Selesai.${NC}"
