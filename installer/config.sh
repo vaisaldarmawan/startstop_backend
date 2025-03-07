@@ -111,7 +111,7 @@ echo -e "${NC}"
 
 pm2 restart hw_ew_info.js  --update-env
 pm2 restart ew_to_command.js  --update-env
-pm2 startup
-pm2 save
+pm2 startup /dev/null 2
+pm2 save /dev/null 2
 
 echo -e "${GREEN}Selesai.${NC}"
