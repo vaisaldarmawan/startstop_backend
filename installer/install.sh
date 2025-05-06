@@ -143,6 +143,11 @@ npm install -g mqtt > /dev/null 2> mqtt_error.log &
 npm install mqtt > /dev/null 2> mqtt_error.log &
 loading $! " >> Menginstall modul mqtt" "mqtt_error.log"
 
+echo -ne " >> Menginstall modul pg [ ]"
+npm install -g pg > /dev/null 2> pg_error.log &
+npm install pg > /dev/null 2> pg_error.log &
+loading $! " >> Menginstall modul pg" "pg_error.log"
+
 echo -ne " >> Mendaftarkan ew_to_command.js ke PM2 [ ]"
 pm2 start ew_to_command.js --name ew_to_command.js > /dev/null 2> pm2_ew_error.log &
 loading $! " >> Mendaftarkan ew_to_command.js ke PM2" "pm2_ew_error.log"
