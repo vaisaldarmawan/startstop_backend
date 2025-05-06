@@ -1,18 +1,19 @@
 require('dotenv').config();
 const { execSync, exec } = require('child_process');
 const mqtt = require('mqtt');
+const pool = require('./db');
 
 // Load environment variables
 const MQTT_HOST = process.env.MQTT_HOST;
 const MQTT_PORT = process.env.MQTT_PORT;
 const MQTT_USERNAME = process.env.MQTT_USERNAME;
 const MQTT_PASSWORD = process.env.MQTT_PASSWORD;
-const INFO_INTERVAL = process.env.INFO_INTERVAL;
+const INFO_INTERVAL = parseInt(process.env.INFO_INTERVAL || '10000');
 
-// Get local machine IP
 const MY_IP = execSync("hostname -I | awk '{print $1}'").toString().trim();
+const hwTopic = `${MY_IP}/status`;
+const ewTopic = `${MY_IP}/ew_status`;
 
-// MQTT Configuration
 const mqttOptions = {
   host: MQTT_HOST,
   port: MQTT_PORT,
@@ -28,13 +29,6 @@ try {
   process.exit(1);
 }
 
-const hwTopic = `${MY_IP}/status`;
-const ewTopic = `${MY_IP}/ew_status`;
-
-console.log("HW Topic:", hwTopic);
-console.log("EW Topic:", ewTopic);
-
-// System commands for fetching local machine data
 const commands = {
   ip: "hostname -I | awk '{print $1}'",
   os: "cat /etc/os-release | grep 'PRETTY_NAME' | cut -d '=' -f2 | tr -d \"\\\"\"",
@@ -53,62 +47,32 @@ const commands = {
   bmkgPing: "ping -c 1 bmkg.go.id | grep 'time=' | awk -F '=' '{print $4}' | cut -d ' ' -f1 | awk '{print $1 \" ms\"}'"
 };
 
-// Function to execute system commands safely
 const fetchData = (callback) => {
   const results = {};
   const keys = Object.keys(commands);
   let count = 0;
 
-  console.log("Executing system commands...");
-
   keys.forEach((key) => {
     const command = commands[key];
-
-    if (typeof command !== 'string' || !command.trim()) {
-      console.error(`Invalid command for ${key}:`, command);
-      results[key] = 'Error';
+    exec(command, (error, stdout) => {
+      results[key] = error ? 'Error' : stdout.trim();
       count++;
       if (count === keys.length) callback(results);
-      return;
-    }
-
-    exec(command, (error, stdout, stderr) => {
-      if (error) {
-        console.error(`Error executing command for ${key}:`, stderr || error.message);
-        results[key] = 'Error';
-      } else {
-        results[key] = stdout.trim();
-      }
-      count++;
-      if (count === keys.length) {
-        callback(results);
-      }
     });
   });
 };
 
-// Function to fetch Earthworm status
 const fetchEarthwormStatus = (callback) => {
   const command = `LC_ALL=C bash -i -c 'status | awk "/-----+/{flag=1; next} flag && NF {print \\$1, \\$2, \\$3, \\$NF}"'`;
 
-  console.log("Fetching Earthworm status...");
-
   exec(command, (error, stdout, stderr) => {
-    if (error) {
-      console.error(`Error executing shell command: ${error.message}`);
-      callback([]);
-      return;
-    }
-
-    if (stderr && !stderr.includes("using default config file startstop_unix.d")) {
-      console.error(`Shell error output: ${stderr}`);
+    if (error || (stderr && !stderr.includes("using default config"))) {
       callback([]);
       return;
     }
 
     const lines = stdout.trim().split("\n");
     if (lines.length === 0 || lines[0] === "") {
-      console.warn("Warning: Earthworm is not running.");
       callback([]);
       return;
     }
@@ -122,61 +86,101 @@ const fetchEarthwormStatus = (callback) => {
   });
 };
 
-// MQTT Connection Event Handling
+const insertHardwareInfoToDB = async (hwData) => {
+  const dateInput = new Date();
+
+  try {
+    await pool.query(
+      `INSERT INTO hw_ew_info (
+        ip, os, hostname, uptime, cpu, cpuCores, cpuThreads, cpuUsage,
+        gpu, ram, ramUsage, hdd, hddUsage, googlePing, bmkgPing, date_input
+      ) VALUES (
+        $1, $2, $3, $4, $5, $6, $7, $8,
+        $9, $10, $11, $12, $13, $14, $15, $16
+      )`,
+      [
+        hwData.ip,
+        hwData.os,
+        hwData.hostname,
+        hwData.uptime,
+        hwData.cpu,
+        hwData.cpuCores,
+        hwData.cpuThreads,
+        hwData.cpuUsage,
+        hwData.gpu,
+        hwData.ram,
+        hwData.ramUsage,
+        hwData.hdd,
+        hwData.hddUsage,
+        hwData.googlePing,
+        hwData.bmkgPing,
+        dateInput
+      ]
+    );
+
+    console.log('✅ PostgreSQL insert success at', dateInput.toLocaleString());
+  } catch (err) {
+    console.error('❌ PostgreSQL Insert Error:', err.message);
+  }
+};
+
+// Fungsi insert manual via terminal
+const insertManual = () => {
+  fetchData(async (hwData) => {
+    console.log('🛠️ Manual insert triggered...');
+    await insertHardwareInfoToDB(hwData);
+    process.exit(0); // keluar setelah insert
+  });
+};
+
+// MQTT handlers
 mqttClient.on('connect', () => {
-  console.log('Connected to MQTT Broker.');
-  startMQTTPublishing();
+  console.log('✅ Connected to MQTT broker');
+  if (!process.argv.includes('--manual')) {
+    startMQTTPublishing();
+  }
 });
+mqttClient.on('error', (err) => console.error('MQTT Error:', err));
+mqttClient.on('offline', () => console.warn('⚠️ MQTT Client offline.'));
+mqttClient.on('reconnect', () => console.log('🔄 Reconnecting MQTT...'));
+mqttClient.on('close', () => console.warn('🚪 MQTT connection closed.'));
 
-mqttClient.on('error', (err) => {
-  console.error('MQTT Error:', err);
-});
+let lastInsertedHour = null;
 
-mqttClient.on('offline', () => {
-  console.warn('MQTT Client is offline.');
-});
-
-mqttClient.on('reconnect', () => {
-  console.log('Reconnecting to MQTT Broker...');
-});
-
-mqttClient.on('close', () => {
-  console.warn('MQTT Connection closed.');
-});
-
-// Function to send data to MQTT at intervals
 const startMQTTPublishing = () => {
-  console.log("Starting MQTT publishing...");
-
   setInterval(() => {
-    fetchData((hwData) => {
+    const now = new Date();
+    const currentMinute = now.getMinutes();
+    const currentHour = now.getHours();
+
+    fetchData(async (hwData) => {
       try {
-        const hwPayload = JSON.stringify(hwData);
-        mqttClient.publish(hwTopic, hwPayload, { qos: 1 }, (err) => {
-          if (err) {
-            console.error('MQTT Publish Error (HW):', err);
-          } else {
-            console.log('Hardware Data sent to MQTT:', hwPayload);
-          }
-        });
-      } catch (error) {
-        console.error('Error in publishing hardware data:', error);
+        const payload = JSON.stringify(hwData);
+        mqttClient.publish(hwTopic, payload, { qos: 1 });
+        console.log('📤 HW MQTT:', payload);
+
+        if (currentMinute === 0 && currentHour !== lastInsertedHour) {
+          await insertHardwareInfoToDB(hwData);
+          lastInsertedHour = currentHour;
+        }
+      } catch (err) {
+        console.error('❌ HW Publish Error:', err.message);
       }
     });
 
     fetchEarthwormStatus((ewData) => {
       try {
-        const ewPayload = JSON.stringify(ewData);
-        mqttClient.publish(ewTopic, ewPayload, { qos: 1 }, (err) => {
-          if (err) {
-            console.error('MQTT Publish Error (EW):', err);
-          } else {
-            console.log('Earthworm Data sent to MQTT:', ewPayload);
-          }
-        });
-      } catch (error) {
-        console.error('Error in publishing Earthworm data:', error);
+        const payload = JSON.stringify(ewData);
+        mqttClient.publish(ewTopic, payload, { qos: 1 });
+        console.log('📤 EW MQTT:', payload);
+      } catch (err) {
+        console.error('❌ EW Publish Error:', err.message);
       }
     });
   }, INFO_INTERVAL);
 };
+
+// Jalankan insert manual jika flag --manual digunakan
+if (process.argv.includes('--manual')) {
+  insertManual();
+}

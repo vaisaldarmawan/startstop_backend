@@ -31,11 +31,17 @@ function ensure_env_variable {
 
 # Menjamin variabel .env ada sebelum diedit
 ensure_env_variable "MQTT_HOST" "localhost"
-ensure_env_variable "MQTT_PORT" "1883"
+ensure_env_variable "MQTT_PORT" "1111"
 ensure_env_variable "MQTT_USERNAME" "user"
 ensure_env_variable "MQTT_PASSWORD" "password"
 ensure_env_variable "INFO_INTERVAL" "5000"
 ensure_env_variable "LOG_INTERVAL" "5000"
+ensure_env_variable "DB_HOST" "localhost"
+ensure_env_variable "DB_USER" "user"
+ensure_env_variable "DB_PORT" "1111"
+ensure_env_variable "DB_PASSWORD" "password"
+ensure_env_variable "DB_NAME" "database"
+ensure_env_variable "DB_CONNECTION_LIMIT" "10"
 
 # Konfigurasi input pengguna
 echo -e "${GREEN}Konfigurasi MQTT :${NC}"
@@ -102,6 +108,39 @@ while true; do
     fi
 done
 
+echo -e "${GREEN}Konfigurasi PostgreSQL :${NC}"
+
+read -p "DB HOST (default: localhost) : " DB_HOST
+if [[ -z "$DB_HOST" ]]; then DB_HOST="localhost"; fi
+
+read -p "DB USER (default: postgres) : " DB_USER
+if [[ -z "$DB_USER" ]]; then DB_USER="postgres"; fi
+
+while true; do
+    read -p "DB PORT (default: 5432) : " DB_PORT
+    if [[ -z "$DB_PORT" ]]; then
+        DB_PORT="5432"
+        break
+    elif [[ "$DB_PORT" =~ ^[0-9]+$ && "$DB_PORT" -gt 0 && "$DB_PORT" -le 65535 ]]; then
+        break
+    else
+        echo -e "${YELLOW}WARN: Masukkan angka antara 1 - 65535.${NC}"
+    fi
+done
+
+read -sp "DB PASSWORD : " DB_PASSWORD
+while [[ -z "$DB_PASSWORD" ]]; do
+    echo -e "\n${YELLOW}WARN: Password tidak boleh kosong.${NC}"
+    read -sp "DB PASSWORD : " DB_PASSWORD
+done
+echo -e "\n"
+
+read -p "DB NAME (default: startstop) : " DB_NAME
+if [[ -z "$DB_NAME" ]]; then DB_NAME="startstop"; fi
+
+read -p "DB CONNECTION LIMIT (default: 10) : " DB_CONNECTION_LIMIT
+if [[ -z "$DB_CONNECTION_LIMIT" ]]; then DB_CONNECTION_LIMIT="10"; fi
+
 # Perbarui nilai di file .env
 sed -i "s/^MQTT_HOST=.*/MQTT_HOST=$MQTT_HOST/" "$ENV_FILE"
 sed -i "s/^MQTT_PORT=.*/MQTT_PORT=$MQTT_PORT/" "$ENV_FILE"
@@ -109,6 +148,12 @@ sed -i "s/^MQTT_USERNAME=.*/MQTT_USERNAME=$MQTT_USERNAME/" "$ENV_FILE"
 sed -i "s/^MQTT_PASSWORD=.*/MQTT_PASSWORD=$MQTT_PASSWORD/" "$ENV_FILE"
 sed -i "s/^INFO_INTERVAL=.*/INFO_INTERVAL=$INFO_INTERVAL/" "$ENV_FILE"
 sed -i "s/^LOG_INTERVAL=.*/LOG_INTERVAL=$LOG_INTERVAL/" "$ENV_FILE"
+sed -i "s/^DB_HOST=.*/DB_HOST=$DB_HOST/" "$ENV_FILE"
+sed -i "s/^DB_USER=.*/DB_USER=$DB_USER/" "$ENV_FILE"
+sed -i "s/^DB_PORT=.*/DB_PORT=$DB_PORT/" "$ENV_FILE"
+sed -i "s/^DB_PASSWORD=.*/DB_PASSWORD=\"$DB_PASSWORD\"/" "$ENV_FILE"
+sed -i "s/^DB_NAME=.*/DB_NAME=$DB_NAME/" "$ENV_FILE"
+sed -i "s/^DB_CONNECTION_LIMIT=.*/DB_CONNECTION_LIMIT=$DB_CONNECTION_LIMIT/" "$ENV_FILE"
 
 echo -e "${YELLOW}Konfigurasi berhasil diperbarui pada $ENV_FILE${NC}"
 
