@@ -107,14 +107,15 @@ while true; do
         echo -e "${YELLOW}WARN: Anda hanya bisa memasukkan angka minimal 5000.${NC}"
     fi
 done
+echo -e "\n"
 
 echo -e "${GREEN}Konfigurasi PostgreSQL :${NC}"
 
 read -p "DB HOST (default: localhost) : " DB_HOST
 if [[ -z "$DB_HOST" ]]; then DB_HOST="localhost"; fi
 
-read -p "DB USER (default: postgres) : " DB_USER
-if [[ -z "$DB_USER" ]]; then DB_USER="postgres"; fi
+read -p "DB USER (default: user) : " DB_USER
+if [[ -z "$DB_USER" ]]; then DB_USER="user"; fi
 
 while true; do
     read -p "DB PORT (default: 5432) : " DB_PORT
@@ -135,8 +136,8 @@ while [[ -z "$DB_PASSWORD" ]]; do
 done
 echo -e "\n"
 
-read -p "DB NAME (default: startstop) : " DB_NAME
-if [[ -z "$DB_NAME" ]]; then DB_NAME="startstop"; fi
+read -p "DB NAME (default: database) : " DB_NAME
+if [[ -z "$DB_NAME" ]]; then DB_NAME="database"; fi
 
 read -p "DB CONNECTION LIMIT (default: 10) : " DB_CONNECTION_LIMIT
 if [[ -z "$DB_CONNECTION_LIMIT" ]]; then DB_CONNECTION_LIMIT="10"; fi
