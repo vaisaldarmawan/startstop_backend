@@ -37,15 +37,16 @@ const commands = {
   cpu: "lscpu | grep 'Model name' | awk -F ':' '{print $2}'",
   cpuCores: "lscpu | grep '^CPU(s):' | awk '{print $2}'",
   cpuThreads: "lscpu | grep 'Thread(s) per core' | awk '{print $4}'",
-  cpuUsage: "mpstat 1 1 | awk '/Average/ {printf \"%.2f%%\", 100 - $NF}'",
+  cpuUsage: "mpstat 1 1 | awk '/Average/ {printf \"%.2f\", 100 - $NF}'", // Removed %
   gpu: "lspci | grep -i vga | cut -d ':' -f3 | sed 's/^ //g'",
   ram: "free -m | awk 'NR==2{printf \"%s MB / %s MB\", $3, $2}'",
-  ramUsage: "free | awk 'NR==2{printf \"%.2f%%\", $3*100/$2}'",
+  ramUsage: "free | awk 'NR==2{printf \"%.2f\", $3*100/$2}'", // Removed %
   hdd: "df -h --total | grep 'total' | awk '{print $3, \"/\", $2}'",
-  hddUsage: "df -h --total | grep 'total' | awk '{print $5}'",
-  googlePing: "ping -c 1 google.com | grep 'time=' | awk -F '=' '{print $4}' | cut -d ' ' -f1 | awk '{print $1 \" ms\"}'",
-  bmkgPing: "ping -c 1 bmkg.go.id | grep 'time=' | awk -F '=' '{print $4}' | cut -d ' ' -f1 | awk '{print $1 \" ms\"}'"
+  hddUsage: "df -h --total | grep 'total' | awk '{print $5}' | tr -d '%'", // Removed %
+  googlePing: "ping -c 1 google.com | grep 'time=' | awk -F '=' '{print $4}' | cut -d ' ' -f1", // Removed ms
+  bmkgPing: "ping -c 1 bmkg.go.id | grep 'time=' | awk -F '=' '{print $4}' | cut -d ' ' -f1" // Removed ms
 };
+
 
 const fetchData = (callback) => {
   const results = {};
