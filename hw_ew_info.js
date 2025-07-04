@@ -64,7 +64,7 @@ const fetchData = (callback) => {
 };
 
 const fetchEarthwormStatus = (callback) => {
-  const command = `LC_ALL=C bash -i -c 'status | awk "/-----+/{flag=1; next} flag && NF {print \\$1, \\$2, \\$3, \\$NF}"'`;
+  const command = `bash -i -c "source ~/.bashrc && status | awk '/-----+/{flag=1; next} flag && NF {print \\$1, \\$2, \\$3, \\$NF}'"`;
 
   exec(command, (error, stdout, stderr) => {
     if (error || (stderr && !stderr.includes("using default config"))) {
@@ -87,6 +87,15 @@ const fetchEarthwormStatus = (callback) => {
   });
 };
 
+// Fungsi bantu untuk konversi angka yang aman
+const safeNumber = (value) => {
+  if (value === undefined || value === null || value === '' || isNaN(Number(value))) {
+    return null; // Atau return 0; jika ingin default ke 0
+  }
+  return Number(value);
+};
+
+// Fungsi insert ke PostgreSQL
 const insertHardwareInfoToDB = async (hwData) => {
   const dateInput = new Date();
 
@@ -105,16 +114,16 @@ const insertHardwareInfoToDB = async (hwData) => {
         hwData.hostname,
         hwData.uptime,
         hwData.cpu,
-        hwData.cpuCores,
-        hwData.cpuThreads,
-        hwData.cpuUsage,
+        safeNumber(hwData.cpuCores),
+        safeNumber(hwData.cpuThreads),
+        safeNumber(hwData.cpuUsage),
         hwData.gpu,
         hwData.ram,
-        hwData.ramUsage,
+        safeNumber(hwData.ramUsage),
         hwData.hdd,
-        hwData.hddUsage,
-        hwData.googlePing,
-        hwData.bmkgPing,
+        safeNumber(hwData.hddUsage),
+        safeNumber(hwData.googlePing),
+        safeNumber(hwData.bmkgPing),
         dateInput
       ]
     );
@@ -124,6 +133,7 @@ const insertHardwareInfoToDB = async (hwData) => {
     console.error('❌ PostgreSQL Insert Error:', err.message);
   }
 };
+
 
 // Fungsi insert manual via terminal
 const insertManual = () => {
