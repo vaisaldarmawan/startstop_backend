@@ -41,10 +41,11 @@ client.on('connect', () => {
             console.log(`Subscribed to topic: ${MQTT_TOPIC_LOG}`);
         }
     });
-    
+
     // Function to fetch last 10 lines from screen session
     setInterval(() => {
-        exec("screen -r startstop -X hardcopy -h /tmp/screenlog && tail -n 10 /tmp/screenlog > /tmp/screenlog.tmp && mv /tmp/screenlog.tmp /tmp/screenlog && cat /tmp/screenlog", (error, stdout, stderr) => {
+        const command = `sudo -u sysop bash -c "screen -r earthworm -X hardcopy -h /tmp/screenlog && tail -n 10 /tmp/screenlog > /tmp/screenlog.tmp && mv /tmp/screenlog.tmp /tmp/screenlog && cat /tmp/screenlog"`;
+        exec(command, (error, stdout, stderr) => {
             if (error) {
                 console.error(`Execution error: ${error.message}`);
                 return;
@@ -52,7 +53,7 @@ client.on('connect', () => {
             if (stderr) {
                 console.error(`stderr: ${stderr}`);
             }
-            
+
             const screenData = stdout.trim();
             if (screenData) {
                 console.log(`Sending data to MQTT: ${screenData}`);
