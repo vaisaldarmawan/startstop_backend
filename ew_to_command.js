@@ -38,9 +38,10 @@ client.on('connect', () => {
 client.on('message', (receivedTopic, message) => {
     if (receivedTopic === MQTT_TOPIC) {
         const command = message.toString().trim();
+	const fullCommand = `bash -c "source ~/.bashrc && ${command}"`;
         console.log(`Received command: ${command}`);
 
-        exec(command, (error, stdout, stderr) => {
+        exec(fullCommand, (error, stdout, stderr) => {
             if (error) {
                 console.error(`Execution error: ${error.message}`);
                 return;
