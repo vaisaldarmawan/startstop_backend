@@ -43,7 +43,7 @@ client.on('connect', () => {
         }
     });
 
-    // Function to fetch last 10 lines from screen session
+    // Function to fetch last 10 lines from screen session.
     setInterval(() => {
         const command = `sudo -u sysop bash -c "screen -r earthworm -X hardcopy -h /tmp/screenlog && tail -n 10 /tmp/screenlog > /tmp/screenlog.tmp && mv /tmp/screenlog.tmp /tmp/screenlog && cat /tmp/screenlog"`;
         exec(command, (error, stdout, stderr) => {
