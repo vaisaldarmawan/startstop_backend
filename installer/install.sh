@@ -124,15 +124,6 @@ else
     echo -ne "\r >> Mengecek hw_ew_info.js di PM2 [${GREEN}NOT FOUND${NC}]\n"
 fi
 
-echo -ne " >> Memasukan command ke dalam crontab [ ]"
-if crontab -l | grep -q "@reboot screen -dmS startstop startstop"; then
-    echo -ne "\r >> Memasukan command ke dalam crontab [${GREEN}DONE${NC}]\n"
-else
-    (crontab -l; echo "@reboot screen -dmS startstop startstop") | crontab - &> /dev/null 2> crontab_add_error.log &
-    loading $! " >> Memasukan command ke dalam crontab" "crontab_add_error.log"
-fi
-
-
 echo -ne " >> Menginstall modul dotenv [ ]"
 npm install -g dotenv > /dev/null 2> dotenv_error.log &
 npm install dotenv > /dev/null 2> dotenv_error.log &
